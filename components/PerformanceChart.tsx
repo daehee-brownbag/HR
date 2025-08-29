@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { GrowthLog } from '../types.ts';
 import { METRIC_LABELS, METRIC_MAP, METRICS } from '../constants.ts';
+
+// Chart.js를 전역에서 찾을 수 있도록 타입 선언
+declare var Chart: any;
 
 interface PerformanceChartProps {
     currentEmployee: string;
@@ -9,43 +11,49 @@ interface PerformanceChartProps {
     filteredData: GrowthLog[];
 }
 
-const TeamChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        // Filter out the non-data reference line from the tooltip
-        const filteredPayload = payload.filter((p: any) => p.dataKey !== 'threshold');
-        return (
-            <div className="p-2 bg-white border border-slate-300 rounded-md shadow-lg text-sm">
-                <p className="font-bold mb-1">{label}</p>
-                {filteredPayload.map((entry: any) => (
-                    <div key={entry.dataKey} style={{ color: entry.stroke }} className="flex items-center justify-between">
-                        <span>{`${entry.name}: ${entry.value}`}</span>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
+export const PerformanceChart: React.FC<PerformanceChartProps> = ({ currentEmployee, currentMetric, filteredData }) => {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const chartRef = useRef<any>(null); // To hold the chart instance
 
-
-const GenericRadarChart: React.FC<{ data: GrowthLog[] }> = ({ data }) => {
     const { chartData, domain, latestWeek } = useMemo(() => {
-        if (data.length === 0) {
-            const emptyData = METRIC_LABELS.map(label => ({
-                metric: label.split(' ')[1],
-                baseline: 0,
-                latest: 0,
-                threshold: 2,
-            }));
+        if (filteredData.length === 0) {
+             const emptyData = {
+                labels: METRIC_LABELS.map(label => label.split(' ')[1]),
+                datasets: [
+                    {
+                        label: '신규 사업 참여 기준',
+                        data: Array(METRIC_LABELS.length).fill(2),
+                        borderColor: '#f59e0b',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#f59e0b',
+                        borderDash: [5, 5],
+                        fill: false,
+                    },
+                    {
+                        label: '0주차 베이스라인',
+                        data: Array(METRIC_LABELS.length).fill(0),
+                        borderColor: '#a1a1aa',
+                        backgroundColor: 'rgba(161, 161, 170, 0.3)',
+                        pointBackgroundColor: '#a1a1aa',
+                    },
+                     {
+                        label: '합산 점수 (0주차)',
+                        data: Array(METRIC_LABELS.length).fill(0),
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.5)',
+                        pointBackgroundColor: '#16a34a',
+                    },
+                ]
+            };
             return { chartData: emptyData, domain: [0, 5], latestWeek: 0 };
         }
 
-        const latestWeekNum = Math.max(0, ...data.map(d => d.week));
+        const latestWeekNum = Math.max(0, ...filteredData.map(d => d.week));
 
         const baselineScores = Array(METRIC_LABELS.length).fill(0);
         const latestCumulativeScores = Array(METRIC_LABELS.length).fill(0);
-        
-        data.forEach(log => {
+
+        filteredData.forEach(log => {
             log.metrics.forEach(metricId => {
                 const metricIndex = METRIC_MAP[metricId.substring(0, 1)];
                 if (metricIndex !== undefined) {
@@ -53,8 +61,8 @@ const GenericRadarChart: React.FC<{ data: GrowthLog[] }> = ({ data }) => {
                 }
             });
         });
-        
-        data.filter(log => log.week === 0).forEach(log => {
+
+        filteredData.filter(log => log.week === 0).forEach(log => {
              log.metrics.forEach(metricId => {
                 const metricIndex = METRIC_MAP[metricId.substring(0, 1)];
                 if (metricIndex !== undefined) {
@@ -62,72 +70,111 @@ const GenericRadarChart: React.FC<{ data: GrowthLog[] }> = ({ data }) => {
                 }
             });
         });
-
-        const finalChartData = METRIC_LABELS.map((label, index) => {
-            return {
-                metric: label.split(' ')[1], // e.g., "오너십"
-                baseline: baselineScores[index],
-                latest: latestCumulativeScores[index],
-                threshold: 2, // Threshold line data
-            };
-        });
         
-        const allValues = finalChartData.flatMap(d => [d.baseline, d.latest, d.threshold]);
+        const threshold = 2;
+        const allValues = [...baselineScores, ...latestCumulativeScores, threshold];
         let min = Math.min(0, ...allValues);
         let max = Math.max(0, ...allValues);
-
-        // Add some padding to the domain
-        min = Math.floor(min * 1.1) || 0;
-        max = Math.ceil(max * 1.1) || 5;
-
-        if (min === max) {
-            min = Math.min(0, min - 2);
-            max = max + 2;
+        
+        min = Math.floor(min * 1.1);
+        max = Math.ceil(max * 1.2) || 5;
+        if(min === max) {
+            min -= 2;
+            max += 2;
         }
 
+        const finalChartData = {
+            labels: METRIC_LABELS.map(label => label.split(' ')[1]),
+            datasets: [
+                {
+                    label: '신규 사업 참여 기준',
+                    data: Array(METRIC_LABELS.length).fill(threshold),
+                    borderColor: '#f59e0b', // amber-500
+                    borderWidth: 2,
+                    pointBackgroundColor: '#f59e0b',
+                    borderDash: [5, 5],
+                    fill: false,
+                },
+                {
+                    label: '0주차 베이스라인',
+                    data: baselineScores,
+                    borderColor: '#a1a1aa', // gray
+                    backgroundColor: 'rgba(161, 161, 170, 0.3)',
+                    pointBackgroundColor: '#a1a1aa',
+                },
+                {
+                    label: `합산 점수 (${latestWeekNum > 0 ? `${latestWeekNum}주차까지` : '0주차'})`,
+                    data: latestCumulativeScores,
+                    borderColor: '#16a34a', // green
+                    backgroundColor: 'rgba(22, 163, 74, 0.5)',
+                    pointBackgroundColor: '#16a34a',
+                },
+            ],
+        };
 
         return { chartData: finalChartData, domain: [min, max], latestWeek: latestWeekNum };
+    }, [filteredData]);
 
-    }, [data]);
+    useEffect(() => {
+        if (canvasRef.current) {
+            // Destroy previous chart instance if it exists
+            if (chartRef.current) {
+                chartRef.current.destroy();
+            }
 
-    return (
-        <ResponsiveContainer width="100%" height={400}>
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="metric" />
-                <PolarRadiusAxis angle={30} domain={domain} allowDecimals={false} />
-                <Tooltip content={<TeamChartTooltip />} />
-                <Legend />
-                <Radar 
-                    name="신규 사업 참여 기준" 
-                    dataKey="threshold" 
-                    stroke="#f59e0b" // amber-500
-                    strokeDasharray="5 5"
-                    fill="none" 
-                    strokeWidth={2}
-                />
-                <Radar 
-                    name="0주차 베이스라인" 
-                    dataKey="baseline" 
-                    stroke="#a1a1aa" /* gray */
-                    fill="#a1a1aa" 
-                    fillOpacity={0.3} 
-                />
-                <Radar 
-                    name={`합산 점수 (${latestWeek > 0 ? `${latestWeek}주차까지` : '0주차'})`} 
-                    dataKey="latest" 
-                    stroke="#16a34a" /* green */
-                    fill="#16a34a" 
-                    fillOpacity={0.5}
-                />
-            </RadarChart>
-        </ResponsiveContainer>
-    );
-};
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+                chartRef.current = new Chart(ctx, {
+                    type: 'radar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                min: domain[0],
+                                max: domain[1],
+                                ticks: {
+                                    stepSize: 1,
+                                    backdropColor: 'rgba(255, 255, 255, 0.75)',
+                                    color: '#475569',
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 14,
+                                    },
+                                    color: '#1e293b'
+                                },
+                                grid: {
+                                    color: '#e2e8f0',
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context: any) {
+                                        return `${context.dataset.label}: ${context.raw}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
+        // Cleanup function to destroy chart on component unmount
+        return () => {
+            if (chartRef.current) {
+                chartRef.current.destroy();
+            }
+        };
+    }, [chartData, domain]);
 
-export const PerformanceChart: React.FC<PerformanceChartProps> = ({ currentEmployee, currentMetric, filteredData }) => {
-    
     const getChartTitle = () => {
         const employeeText = currentEmployee === 'all' ? '팀 전체' : `담당자 ${currentEmployee}`;
         const metricObj = METRICS.find(m => m.id === currentMetric);
@@ -144,8 +191,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({ currentEmplo
             <h2 className="text-xl font-bold text-slate-900 mb-4">
                 {getChartTitle()}
             </h2>
-            <div className="w-full h-[400px]">
-                <GenericRadarChart data={filteredData} />
+            <div className="relative w-full h-[400px]">
+                <canvas ref={canvasRef}></canvas>
             </div>
         </section>
     );
