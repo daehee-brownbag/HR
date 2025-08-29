@@ -1,0 +1,5 @@
+{
+  "name": "Team Performance Dashboard",
+  "description": "An interactive dashboard to analyze team members' weekly performance logs, track growth, and identify areas for improvement. It features dynamic charts and filterable data views.",
+  "requestFramePermissions": []
+}
