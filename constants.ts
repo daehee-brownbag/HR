@@ -1,4 +1,4 @@
-import { Metric } from './types';
+import { Metric } from './types.ts';
 
 // The initial data is now empty. User must import from a Google Sheet.
 export const INITIAL_GROWTH_LOG_DATA = [];

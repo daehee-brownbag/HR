@@ -1,5 +1,5 @@
-import { GrowthLog } from '../types';
-import { METRIC_HEADER_MAP } from '../constants';
+import { GrowthLog } from '../types.ts';
+import { METRIC_HEADER_MAP } from '../constants.ts';
 
 export function parseGoogleSheetURL(url: string): { sheetId: string | null; gid: string | null } {
     const sheetIdMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);

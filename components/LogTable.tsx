@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GrowthLog } from '../types';
+import { GrowthLog } from '../types.ts';
 
 interface LogTableProps {
     data: GrowthLog[];

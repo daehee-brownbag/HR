@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { GrowthLog } from '../types';
-import { METRIC_LABELS, METRIC_MAP, METRICS } from '../constants';
+import { GrowthLog } from '../types.ts';
+import { METRIC_LABELS, METRIC_MAP, METRICS } from '../constants.ts';
 
 interface PerformanceChartProps {
     currentEmployee: string;

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Metric } from '../types';
+import { Metric } from '../types.ts';
 
 interface FilterControlsProps {
     employees: string[];

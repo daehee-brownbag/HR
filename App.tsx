@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Header } from './components/Header';
-import { FilterControls } from './components/FilterControls';
-import { PerformanceChart } from './components/PerformanceChart';
-import { LogTable } from './components/LogTable';
-import { DataImporter } from './components/DataImporter';
-import { INITIAL_GROWTH_LOG_DATA, METRICS } from './constants';
-import { parseGoogleSheetURL, parseCSVToGrowthLogs } from './utils/csvParser';
-import { GrowthLog } from './types';
+import { Header } from './components/Header.tsx';
+import { FilterControls } from './components/FilterControls.tsx';
+import { PerformanceChart } from './components/PerformanceChart.tsx';
+import { LogTable } from './components/LogTable.tsx';
+import { DataImporter } from './components/DataImporter.tsx';
+import { INITIAL_GROWTH_LOG_DATA, METRICS } from './constants.ts';
+import { parseGoogleSheetURL, parseCSVToGrowthLogs } from './utils/csvParser.ts';
+import { GrowthLog } from './types.ts';
 
 const App: React.FC = () => {
     const [currentEmployee, setCurrentEmployee] = useState('all');
